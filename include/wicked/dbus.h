@@ -56,6 +56,7 @@ struct ni_dbus_variant {
 		ni_dbus_dict_entry_t *dict_array_value;
 		ni_dbus_variant_t *variant_array_value;
 		ni_dbus_variant_t *struct_value;
+		ni_dbus_variant_t *variant_value;
 	};
 
 	ni_dbus_message_t *	__message;
@@ -334,6 +335,8 @@ extern ni_bool_t		ni_dbus_struct_add_string(ni_dbus_variant_t *, const char *);
 extern ni_dbus_variant_t *	ni_dbus_struct_get(const ni_dbus_variant_t *, unsigned int);
 extern dbus_bool_t		ni_dbus_struct_get_string(const ni_dbus_variant_t *, unsigned int, const char **);
 
+extern ni_dbus_variant_t *	ni_dbus_variant_init_variant(ni_dbus_variant_t *);
+extern dbus_bool_t		ni_dbus_variant_get_variant(ni_dbus_variant_t *var, ni_dbus_variant_t **ret);
 /*
  * Client side functions
  */
@@ -442,6 +445,7 @@ extern int			ni_dbus_xml_expand_element_reference(xml_node_t *doc_node, const ch
 extern const char *		ni_dbus_xml_type_signature(const ni_xs_type_t *);
 
 extern unsigned int		__ni_dbus_variant_offsets[256];
+extern unsigned int		__ni_dbus_variant_sizeof[256];
 
 static inline void *
 ni_dbus_variant_datum_ptr(ni_dbus_variant_t *variant)
@@ -455,9 +459,9 @@ ni_dbus_variant_datum_ptr(ni_dbus_variant_t *variant)
 }
 
 static inline const void *
-ni_dbus_variant_datum_const_ptr(const ni_dbus_variant_t *variant)
+ni_dbus_variant_type_datum_const_ptr(const ni_dbus_variant_t *variant,
+		unsigned int type)
 {
-	unsigned int type = variant->type;
 	unsigned int offset;
 
 	if (type > 255 || (offset = __ni_dbus_variant_offsets[type]) == 0)
@@ -465,6 +469,14 @@ ni_dbus_variant_datum_const_ptr(const ni_dbus_variant_t *variant)
 	return (const void *) (((const caddr_t) variant) + offset);
 }
 
+static inline const void *
+ni_dbus_variant_datum_const_ptr(const ni_dbus_variant_t *variant)
+{
+	return ni_dbus_variant_type_datum_const_ptr(variant, variant->type);
+}
+
+
+#define DCLEMIX(x, ...) ni_error("CLEMIX %s:%d \t - "x, __func__, __LINE__, ##__VA_ARGS__)
 #define NI_DBUS_DICT_ENTRY_SIGNATURE \
 		DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING \
 		DBUS_TYPE_STRING_AS_STRING \

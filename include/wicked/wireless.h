@@ -23,6 +23,10 @@ typedef enum ni_wireless_mode {
 	NI_WIRELESS_MODE_REPEATER,
 	NI_WIRELESS_MODE_SECONDARY,
 	NI_WIRELESS_MODE_MONITOR,
+	NI_WIRELESS_MODE_INFRA = NI_WIRELESS_MODE_MANAGED,
+	NI_WIRELESS_MODE_AP = NI_WIRELESS_MODE_MASTER,
+	NI_WIRELESS_MODE_P2P,
+
 } ni_wireless_mode_t;
 
 typedef enum ni_wireless_security {
@@ -43,9 +47,15 @@ typedef enum ni_wireless_cipher {
 
 typedef enum ni_wireless_key_mgmt {
 	NI_WIRELESS_KEY_MGMT_NONE,
-	NI_WIRELESS_KEY_MGMT_EAP,
 	NI_WIRELESS_KEY_MGMT_PSK,
+	NI_WIRELESS_KEY_MGMT_FT_PSK,
+	NI_WIRELESS_KEY_MGMT_PSK_SHA256,
+	NI_WIRELESS_KEY_MGMT_EAP,
+	NI_WIRELESS_KEY_MGMT_FT_EAP,
+	NI_WIRELESS_KEY_MGMT_EAP_SHA256,
 	NI_WIRELESS_KEY_MGMT_802_1X,
+	NI_WIRELESS_KEY_MGMT_WPA_NONE,
+	NI_WIRELESS_KEY_MGMT_WPS,
 	NI_WIRELESS_KEY_MGMT_PROPRIETARY,
 } ni_wireless_key_mgmt_t;
 
@@ -113,6 +123,12 @@ typedef enum ni_wireless_ap_scan {
 	NI_WIRELESS_AP_SCAN_SUPPLICANT_AUTO,
 	NI_WIRELESS_AP_SCAN_SUPPLICANT_EXPLICIT_MATCH,
 } ni_wireless_ap_scan_mode_t;
+
+typedef enum ni_wireless_scan_type {
+	NI_WIRELESS_SCAN_TYPE_ACTIVE = 0,
+	NI_WIRELESS_SCAN_TYPE_PASSIVE,
+	NI_WIRELESS_SCAN_TYPE_SSID,
+} ni_wireless_scan_type_t;
 
 #define NI_WIRELESS_PAIRWISE_CIPHERS_MAX	4
 
@@ -230,12 +246,14 @@ typedef struct ni_wireless_network_array {
 } ni_wireless_network_array_t;
 
 typedef struct ni_wireless_interface_capabilities {
-	unsigned int		eap_methods;
 	unsigned int		pairwise_ciphers;
 	unsigned int		group_ciphers;
 	unsigned int		keymgmt_algos;
 	unsigned int		auth_algos;
 	unsigned int		wpa_protocols;
+	unsigned int		scan_types;
+	unsigned int		modes;
+	int32_t		max_scan_ssid;
 } ni_wireless_interface_capabilities_t;
 
 typedef struct ni_wireless_config {

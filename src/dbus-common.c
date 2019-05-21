@@ -731,8 +731,60 @@ ni_dbus_variant_append_variant_element(ni_dbus_variant_t *var)
 void
 ni_dbus_variant_copy(ni_dbus_variant_t *dst, const ni_dbus_variant_t *src)
 {
+	size_t i;
+	const void *datum;
+	unsigned int size;
 	ni_dbus_variant_destroy(dst);
-	ni_fatal("%s: not implemented", __FUNCTION__);
+	switch(src->type) {
+	case DBUS_TYPE_STRING:
+		ni_dbus_variant_set_string(dst, src->string_value);
+		break;
+	case DBUS_TYPE_OBJECT_PATH:
+		ni_dbus_variant_set_object_path(dst, src->string_value);
+		break;
+	case DBUS_TYPE_BYTE:
+	case DBUS_TYPE_UINT16:
+	case DBUS_TYPE_INT16:
+	case DBUS_TYPE_UINT32:
+	case DBUS_TYPE_INT32:
+	case DBUS_TYPE_UINT64:
+	case DBUS_TYPE_INT64:
+		__ni_dbus_variant_change_type(dst, src->type);
+		datum = ni_dbus_variant_datum_const_ptr(src);
+		if (datum == NULL){
+			ni_fatal("Missing datum for type:%d", src->type);
+		}
+		size = __ni_dbus_variant_sizeof[src->type];
+		memcpy(ni_dbus_variant_datum_ptr(dst), datum, size);
+		break;
+
+	case DBUS_TYPE_ARRAY:
+		switch(src->array.element_type){
+		case DBUS_TYPE_DICT_ENTRY:
+			ni_dbus_variant_init_dict(dst);
+			for (i = 0; i < src->array.len; ++i) {
+				ni_dbus_variant_t *tmp;
+				ni_dbus_dict_entry_t *e = &src->dict_array_value[i];
+				tmp = ni_dbus_dict_add(dst, e->key);
+				ni_dbus_variant_copy(tmp, &e->datum);
+			}
+
+			break;
+		case DBUS_TYPE_BYTE:
+			ni_dbus_variant_set_byte_array(dst, src->byte_array_value, src->array.len);
+			break;
+
+		default:
+			ni_fatal("%s: not implemented ARRAY for type:  %d(%s)",
+				__func__,src->array.element_type,
+				ni_dbus_type_as_string(src->array.element_type));
+		}
+		break;
+	default:
+		ni_fatal("%s: not implemented for type:  %d(%s)",
+				__func__,src->type,
+				ni_dbus_type_as_string(src->type));
+	}
 }
 
 void
@@ -746,6 +798,12 @@ ni_dbus_variant_destroy(ni_dbus_variant_t *var)
 	if (var->type == DBUS_TYPE_STRING
 	 || var->type == DBUS_TYPE_OBJECT_PATH)
 		ni_string_free(&var->string_value);
+	else if (var->type == DBUS_TYPE_VARIANT) {
+		if (var->variant_value){
+			ni_dbus_variant_destroy(var->variant_value);
+			free(var->variant_value);
+		}
+	}
 	else if (var->type == DBUS_TYPE_ARRAY) {
 		unsigned int i;
 
@@ -794,60 +852,86 @@ ni_dbus_variant_destroy(ni_dbus_variant_t *var)
 }
 
 const char *
-ni_dbus_variant_sprint(const ni_dbus_variant_t *var)
+ni_dbus_variant_snprint(const ni_dbus_variant_t *var, char *buffer, size_t len)
 {
-	static char buffer[256];
+	unsigned int i;
+	int l = len, tmp;
+	char *ptr = buffer;
 
 	switch (var->type) {
 	case DBUS_TYPE_STRING:
 	case DBUS_TYPE_OBJECT_PATH:
-		return var->string_value;
+		snprintf(buffer, len, "%s", var->string_value);
+		break;
 
 	case DBUS_TYPE_BYTE:
-		snprintf(buffer, sizeof(buffer), "0x%02x", var->byte_value);
+		snprintf(buffer, len, "0x%02x", var->byte_value);
 		break;
 
 	case DBUS_TYPE_BOOLEAN:
-		return var->bool_value? "true" : "false";
+		snprintf(buffer, len, "%s", var->bool_value? "true" : "false");
 		break;
 
 	case DBUS_TYPE_INT16:
-		snprintf(buffer, sizeof(buffer), "%d", var->int16_value);
+		snprintf(buffer, len, "%d", var->int16_value);
 		break;
 
 	case DBUS_TYPE_UINT16:
-		snprintf(buffer, sizeof(buffer), "%u", var->uint16_value);
+		snprintf(buffer, len, "%u", var->uint16_value);
 		break;
 
 	case DBUS_TYPE_INT32:
-		snprintf(buffer, sizeof(buffer), "%d", var->int32_value);
+		snprintf(buffer, len, "%d", var->int32_value);
 		break;
 
 	case DBUS_TYPE_UINT32:
-		snprintf(buffer, sizeof(buffer), "%u", var->uint32_value);
+		snprintf(buffer, len, "%u", var->uint32_value);
 		break;
 
 	case DBUS_TYPE_INT64:
-		snprintf(buffer, sizeof(buffer), "%lld", (long long) var->int64_value);
+		snprintf(buffer, len, "%lld", (long long) var->int64_value);
 		break;
 
 	case DBUS_TYPE_UINT64:
-		snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long) var->uint64_value);
+		snprintf(buffer, len, "%llu", (unsigned long long) var->uint64_value);
 		break;
 
 	case DBUS_TYPE_DOUBLE:
-		snprintf(buffer, sizeof(buffer), "%f", var->double_value);
+		snprintf(buffer, len, "%f", var->double_value);
 		break;
 
 	case DBUS_TYPE_STRUCT:
-		return "<struct>";
+		snprintf(buffer, len, "<struct>");
+		break;
+
+	case DBUS_TYPE_ARRAY:
+		for(i=0; i < var->array.len; i++){
+			tmp = snprintf(ptr, l, "%s,", ni_dbus_variant_array_print_element(var, i));
+			if (tmp < 0){
+				snprintf(buffer, len, "<BUFFER TO SMALL>");
+				break;
+			}
+			ptr += tmp;
+			l -= tmp;
+			if (i + 1 == var->array.len){
+				*(ptr -1) = '\0';
+			}
+		}
+		break;
 
 	default:
-		return "<unknown type>";
+		snprintf(buffer, len, "<unknown type (%c)>", var->type);
 	}
 
-
 	return buffer;
+
+}
+
+const char *
+ni_dbus_variant_sprint(const ni_dbus_variant_t *var)
+{
+	static char buffer[256];
+	return ni_dbus_variant_snprint(var, buffer, sizeof(buffer));
 }
 
 dbus_bool_t
@@ -1138,7 +1222,7 @@ ni_dbus_variant_signature(const ni_dbus_variant_t *var)
 			for (i = 0; i < var->array.len; ++i) {
 				ni_dbus_variant_t *member = &var->struct_value[i];
 				const char *msig;
-				
+
 				if ((msig = ni_dbus_variant_signature(member)) == NULL) {
 					ni_stringbuf_destroy(&buf);
 					return NULL;
@@ -1649,6 +1733,32 @@ ni_dbus_array_array_add(ni_dbus_variant_t *var)
 }
 
 /*
+ * DBus Variant 'v'
+ */
+ni_dbus_variant_t *
+ni_dbus_variant_init_variant(ni_dbus_variant_t *var)
+{
+	ni_dbus_variant_destroy(var);
+	var->type = DBUS_TYPE_VARIANT;
+	var->variant_value = calloc(1, sizeof(ni_dbus_variant_t));
+	if (var->variant_value == NULL) {
+		ni_fatal("%s: out of memory", __func__);
+		return NULL;
+	}
+	return var->variant_value;
+}
+
+dbus_bool_t
+ni_dbus_variant_get_variant(ni_dbus_variant_t *var, ni_dbus_variant_t **ret)
+{
+	if (var->type != DBUS_TYPE_VARIANT)
+		return FALSE;
+
+	*ret = var->variant_value;
+	return TRUE;
+}
+
+/*
  * Translate basic dbus types to signature strings
  */
 static const char * __ni_dbus_basic_type_as_string[256] = {
@@ -1663,6 +1773,7 @@ static const char * __ni_dbus_basic_type_as_string[256] = {
 [DBUS_TYPE_DOUBLE]	= DBUS_TYPE_DOUBLE_AS_STRING,
 [DBUS_TYPE_STRING]	= DBUS_TYPE_STRING_AS_STRING,
 [DBUS_TYPE_OBJECT_PATH]	= DBUS_TYPE_OBJECT_PATH_AS_STRING,
+[DBUS_TYPE_VARIANT]	= DBUS_TYPE_VARIANT_AS_STRING,
 };
 
 const char *
@@ -1689,4 +1800,23 @@ __ni_dbus_variant_offsets[256] = {
 [DBUS_TYPE_INT64]		= offsetof(ni_dbus_variant_t, int64_value),
 [DBUS_TYPE_UINT64]		= offsetof(ni_dbus_variant_t, uint64_value),
 [DBUS_TYPE_DOUBLE]		= offsetof(ni_dbus_variant_t, double_value),
+};
+
+/*
+ * size of all elements in the variant struct
+ */
+#ifndef member_size
+#  define member_size(type, member) sizeof(((type *)NULL)->member)
+#endif
+unsigned int
+__ni_dbus_variant_sizeof[256] = {
+[DBUS_TYPE_BYTE]		= member_size(ni_dbus_variant_t, byte_value),
+[DBUS_TYPE_BOOLEAN]		= member_size(ni_dbus_variant_t, bool_value),
+[DBUS_TYPE_INT16]		= member_size(ni_dbus_variant_t, int16_value),
+[DBUS_TYPE_UINT16]		= member_size(ni_dbus_variant_t, uint16_value),
+[DBUS_TYPE_INT32]		= member_size(ni_dbus_variant_t, int32_value),
+[DBUS_TYPE_UINT32]		= member_size(ni_dbus_variant_t, uint32_value),
+[DBUS_TYPE_INT64]		= member_size(ni_dbus_variant_t, int64_value),
+[DBUS_TYPE_UINT64]		= member_size(ni_dbus_variant_t, uint64_value),
+[DBUS_TYPE_DOUBLE]		= member_size(ni_dbus_variant_t, double_value),
 };

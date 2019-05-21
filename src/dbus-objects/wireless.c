@@ -526,12 +526,13 @@ __ni_objectmodel_wireless_set_scan(ni_dbus_object_t *object,
 	NI_DBUS_GENERIC_STRING_PROPERTY(wireless, dbus_name, member_name, rw)
 
 const ni_dbus_property_t	ni_objectmodel_wireless_property_table[] = {
-	WIRELESS_UINT_PROPERTY(eap-methods, capabilities.eap_methods, RO),
 	WIRELESS_UINT_PROPERTY(pairwise-ciphers, capabilities.pairwise_ciphers, RO),
 	WIRELESS_UINT_PROPERTY(group-ciphers, capabilities.group_ciphers, RO),
 	WIRELESS_UINT_PROPERTY(key-management, capabilities.keymgmt_algos, RO),
 	WIRELESS_UINT_PROPERTY(auth-methods, capabilities.auth_algos, RO),
 	WIRELESS_UINT_PROPERTY(wpa-protocols, capabilities.wpa_protocols, RO),
+	WIRELESS_UINT_PROPERTY(scan-types, capabilities.scan_types, RO),
+	WIRELESS_UINT_PROPERTY(modes, capabilities.modes, RO),
 	__NI_DBUS_PROPERTY(
 			NI_DBUS_DICT_SIGNATURE,
 			scan, __ni_objectmodel_wireless, RO),
