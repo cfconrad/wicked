@@ -1,0 +1,7 @@
+HOST=root@192.168.122.152
+ssh $HOST -- rcwickedd stop
+scp ./server/.libs/wickedd $HOST:/usr/sbin/wickedd
+scp ./client/.libs/wicked $HOST:/usr/sbin/wicked
+scp ./nanny/.libs/wickedd-nanny $HOST:/usr/sbin/wickedd-nanny
+scp ./src/.libs/libwicked-0.so.6 $HOST:/usr/lib64/libwicked-0.so.6
+ssh $HOST -- rcwickedd start
