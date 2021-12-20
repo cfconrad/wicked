@@ -324,6 +324,13 @@ if test "$ac_cv_header_linux_if_packet_h" = "yes" ; then
 	)
 fi
 
+WICKED_SPEC_HEADER="
+###############################################################################
+#### DO NOT EDIT!! DO NOT EDIT!! DO NOT EDIT!! DO NOT EDIT!! DO NOT EDIT!! ####
+####                Its generated from wicked.spec.in template!            ####
+###############################################################################"
+AC_SUBST([WICKED_SPEC_HEADER])
+
 AC_CONFIG_FILES([
 	Makefile
 	include/Makefile
