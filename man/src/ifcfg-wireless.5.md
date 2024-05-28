@@ -119,13 +119,13 @@ global to the interface. The description of the variable points this out.
     Or you can specify the key in hex digits.
 
     Note: for backward compatibility a prefix "h:" or characters like "-" or
-    ":" get removed from the hexstring.
+    ":" get removed from the hexstring. 
 
-    Examples:
-```
-    WIRELESS_KEY_0="01020304ff"
-    WIRELESS_KEY_0-"s:hello"
-```
+    Examples: 
+      
+      WIRELESS_KEY_0="01020304ff"
+      WIRELESS_KEY_0-"s:hello"
+      
 
 `WIRELESS_DEFAULT_KEY <num>`
 :   Sets the default WEP key. The default key is used to encrypt outgoing

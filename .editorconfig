@@ -22,6 +22,11 @@ indent_size = 3
 indent_style = space
 indent_size = 3
 
+[man/src/*.md]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = false
+
 [doc/schema/*.html]
 indent_style = space
 indent_size = 1
