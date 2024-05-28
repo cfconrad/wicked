@@ -113,15 +113,10 @@ global to the interface. The description of the variable points this out.
     frequencies/channels may not be available.
 
 `WIRELESS_KEY_[0123] <string|hex>`
-:   You can define up to 4 WEP encryption keys. You can use WEP with open and
-    sharedkey authentication. The key can be entered in as ASCII string, where
-    char represent one byte of the key, thus the length must match 5, 13 or 16.
-    Or you can specify the key in hex digits.
-
-    Note: for backward compatibility a prefix "h:" or characters like "-" or
-    ":" get removed from the hexstring. 
-
-    Examples: 
+:   You can define up to 4 WEP encryption keys. You can use WEP with open and sharedkey authentication. The key can be entered in as ASCII string, where char represent one byte of the key, thus the length must match 5, 13 or 16. Or you can specify the key in hex digits.  
+Note: for backward compatibility a prefix "h:" or characters like "-" or ":" get removed from the hexstring.  
+  
+Examples:  
       
       WIRELESS_KEY_0="01020304ff"
       WIRELESS_KEY_0-"s:hello"
