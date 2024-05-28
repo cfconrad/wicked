@@ -1792,6 +1792,7 @@ try_infiniband(ni_suse_ifcfg_array_t *ifcfgs, ni_suse_ifcfg_t *ifcfg)
 {
 	const ni_sysconfig_t *sc = ifcfg->config;
 	ni_netdev_t *dev = ifcfg->compat->dev;
+	ni_suse_ifcfg_t *lower;
 	ni_bool_t enabled;
 	ni_bool_t ib_ifname = FALSE;
 	const char *umcast;
@@ -1817,7 +1818,7 @@ try_infiniband(ni_suse_ifcfg_array_t *ifcfgs, ni_suse_ifcfg_t *ifcfg)
 			return 1;
 	}
 
-	if (dev->link.type != NI_IFTYPE_UNKNOWN) {
+	if (dev->link.type != NI_IFTYPE_UNKNOWN && dev->link.type != NI_IFTYPE_INFINIBAND) {
 		ni_error("ifcfg-%s: %s config contains infiniband variables",
 				dev->name, ni_linktype_type_to_name(dev->link.type));
 		return -1;
@@ -1857,6 +1858,20 @@ try_infiniband(ni_suse_ifcfg_array_t *ifcfgs, ni_suse_ifcfg_t *ifcfg)
 
 		ib->pkey = tmp;
 		dev->link.type = NI_IFTYPE_INFINIBAND_CHILD;
+
+		if (!(lower = ni_suse_ifcfg_add_lower(ifcfgs, ifcfg, device, "IPOIB_DEVICE")))
+			return -1;
+		switch (lower->compat->dev->link.type) {
+		case NI_IFTYPE_UNKNOWN:
+			lower->compat->dev->link.type = NI_IFTYPE_INFINIBAND;
+			break;
+		case NI_IFTYPE_INFINIBAND:
+			break;
+		default:
+			ni_error("ifcfg-%s: Failed to create lower device config", dev->name);
+			return -1;
+		}
+
 		ni_string_dup(&dev->link.lowerdev.name, device);
 	}
 	ni_string_free(&device);
